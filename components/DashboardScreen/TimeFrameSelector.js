@@ -1,0 +1,73 @@
+import React from "react";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+
+const TimeFrameButton = ({ label, isActive, onPress }) => (
+  <TouchableOpacity
+    style={[styles.timeFrameButton, isActive && styles.timeFrameButtonActive]}
+    onPress={onPress}
+  >
+    <Text
+      style={[styles.timeFrameText, isActive && styles.timeFrameTextActive]}
+    >
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
+const TimeFrameSelector = ({ activeTimeFrame, setActiveTimeFrame }) => {
+  return (
+    <View style={styles.timeFrameContainer}>
+      <TimeFrameButton
+        label="24H"
+        isActive={activeTimeFrame === "day"}
+        onPress={() => setActiveTimeFrame("day")}
+      />
+      <TimeFrameButton
+        label="Week"
+        isActive={activeTimeFrame === "week"}
+        onPress={() => setActiveTimeFrame("week")}
+      />
+      <TimeFrameButton
+        label="Month"
+        isActive={activeTimeFrame === "month"}
+        onPress={() => setActiveTimeFrame("month")}
+      />
+      <TimeFrameButton
+        label="Year"
+        isActive={activeTimeFrame === "year"}
+        onPress={() => setActiveTimeFrame("year")}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  timeFrameContainer: {
+    flexDirection: "row",
+    backgroundColor: "#1A1A1A",
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+  },
+  timeFrameButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  timeFrameButtonActive: {
+    backgroundColor: "#2A2A2A",
+  },
+  timeFrameText: {
+    fontSize: 14,
+    fontFamily: "Roboto_500Medium",
+    color: "#888",
+  },
+  timeFrameTextActive: {
+    color: "#4CD964",
+  },
+});
+
+export default TimeFrameSelector;
