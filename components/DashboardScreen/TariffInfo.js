@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { theme } from "../../theme/app-theme";
 
 const TariffInfo = () => {
   return (
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   tariffHeader: {
     flexDirection: "row",
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
   tariffText: {
     fontSize: 14,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     marginBottom: 12,
   },
   tariffRates: {

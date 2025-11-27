@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-
+import { theme } from "../../theme/app-theme";
 const CostBreakdown = ({ currentCost }) => {
   if (!currentCost) {
     return (
@@ -18,7 +18,9 @@ const CostBreakdown = ({ currentCost }) => {
       <View style={styles.costGrid}>
         <View style={styles.costItem}>
           <View style={styles.costHeader}>
-            <View style={[styles.costDot, { backgroundColor: "#4CD964" }]} />
+            <View
+              style={[styles.costDot, { backgroundColor: theme.PRIMARY_GREEN }]}
+            />
             <Text style={styles.costLabel}>Energy Charge</Text>
           </View>
           <Text style={styles.costValue}>
@@ -57,7 +59,7 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   cardTitle: {
     fontSize: 18,
@@ -87,7 +89,7 @@ const styles = StyleSheet.create({
   costLabel: {
     fontSize: 14,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   costValue: {
     fontSize: 16,
@@ -95,11 +97,11 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   totalCost: {
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     fontSize: 18,
   },
   noDataText: {
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     fontFamily: "Roboto_400Regular",
     fontSize: 14,
     textAlign: "center",

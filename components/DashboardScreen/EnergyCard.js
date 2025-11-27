@@ -1,74 +1,69 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import StatCard from "./StatCard";
+import { theme } from "../../theme/app-theme";
 
-const EnergyCard = ({
-  todayUsage,
-  monthlyTotal,
-  yesterdayUsage,
-  weeklyUsage = [],
-}) => {
-  // Calculate TOTAL usage for today from all today's entries
-  const calculateTodayTotal = () => {
-    if (!weeklyUsage || !Array.isArray(weeklyUsage))
-      return { units: 0, cost: 0 };
+const EnergyCard = ({ todayUsage, monthlyTotal, weeklyUsage = [] }) => {
+  console.log("🟦 ENERGY CARD RENDER ---------------------------");
 
-    const today = new Date().toDateString();
-    const todayEntries = weeklyUsage.filter((entry) => entry.date === today);
+  const todayDate = new Date().toDateString();
+  const yesterdayDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toDateString();
+  })();
 
-    const totalUnits = todayEntries.reduce(
-      (sum, entry) => sum + (entry.unitsUsed || 0),
-      0
-    );
-    const totalCost = todayEntries.reduce(
-      (sum, entry) => sum + (entry.cost?.totalCost || 0),
-      0
-    );
+  console.log("📅 Today date:", todayDate);
+  console.log("📅 Yesterday date:", yesterdayDate);
 
-    return { units: totalUnits, cost: totalCost };
-  };
+  const todayEntries = weeklyUsage.filter((e) => e.date === todayDate);
+  const yesterdayEntries = weeklyUsage.filter((e) => e.date === yesterdayDate);
 
-  // Safe trend calculation
-  const calculateTrend = (current, previous) => {
-    if (!previous || previous === 0 || !current) return 0;
-    return ((current - previous) / previous) * 100;
-  };
+  console.log("📘 Today entries:", todayEntries);
+  console.log("📙 Yesterday entries:", yesterdayEntries);
 
-  // Get today's total (sum of all today's entries)
-  const todayTotal = calculateTodayTotal();
-  const todayUnits = todayTotal.units;
-  const todayCost = todayTotal.cost;
-
-  // For trend calculation, use today's total vs yesterday
-  const yesterdayUnits = yesterdayUsage?.unitsUsed || 0;
-  const trend = calculateTrend(todayUnits, yesterdayUnits);
-
-  console.log("Today's total:", todayTotal);
-  console.log(
-    "Today entries count:",
-    weeklyUsage.filter((entry) => entry.date === new Date().toDateString())
-      .length
+  // --- UNITS ---
+  const todayTotal = todayEntries.reduce(
+    (sum, e) => sum + (e.unitsUsed || 0),
+    0
   );
 
-  // Safe number formatting
-  const formatNumber = (num) => {
-    if (typeof num !== "number" || isNaN(num)) return "0";
-    return num.toFixed(0);
-  };
+  const yesterdayUnits = yesterdayEntries.reduce(
+    (sum, e) => sum + (e.unitsUsed || 0),
+    0
+  );
 
-  const formatCurrency = (num) => {
-    if (typeof num !== "number" || isNaN(num)) return "0.00";
-    return num.toFixed(2);
-  };
+  console.log("🔵 Today via readings:", todayTotal);
+  console.log("🟠 Yesterday via readings:", yesterdayUnits);
+
+  // --- COST (MATCHES UsageInput logic) ---
+  const todayCost = todayEntries.reduce((sum, e) => {
+    const c = e.cost || {};
+    const costValue = c.total || c.totalCost || 0;
+    return sum + costValue;
+  }, 0);
+
+  console.log("💰 Today Cost:", todayCost);
+
+  // --- TREND ---
+  const trend =
+    yesterdayUnits > 0
+      ? ((todayTotal - yesterdayUnits) / yesterdayUnits) * 100
+      : 0;
+
+  console.log("📊 Trend:", trend);
 
   return (
     <View style={styles.energyCard}>
       <View style={styles.energyCardHeader}>
         <View>
           <Text style={styles.energyLabel}>Today's Total Usage</Text>
-          <Text style={styles.energyValue}>{todayUnits.toFixed(1)} kWh</Text>
-          <Text style={styles.energyCost}>R {formatCurrency(todayCost)}</Text>
+          <Text style={styles.energyValue}>{todayTotal.toFixed(1)} kWh</Text>
+
+          {/* FIXED COST DISPLAY */}
+          <Text style={styles.energyCost}>R {todayCost.toFixed(2)}</Text>
         </View>
+
         <View style={styles.liveIndicator}>
           <View style={styles.liveDot} />
           <Text style={styles.liveText}>TODAY</Text>
@@ -76,36 +71,44 @@ const EnergyCard = ({
       </View>
 
       <View style={styles.statsGrid}>
+        {/* Today */}
         <StatCard
           icon="flash"
-          value={`${todayUnits.toFixed(1)} kWh`}
-          label="Today's Total"
+          value={`${todayTotal.toFixed(1)} kWh`}
+          label="Today's Usage"
           color="#FF9500"
         />
+
+        {/* Trend */}
         <StatCard
           icon="trending-up"
-          value={`${trend > 0 ? "+" : ""}${Math.abs(trend).toFixed(1)}%`}
+          value={`${trend > 0 ? "+" : ""}${trend.toFixed(1)}%`}
           label="vs Yesterday"
           trend={trend}
-          color={trend > 0 ? "#FF3B30" : "#4CD964"}
+          color={trend > 0 ? "#FF3B30" : theme.PRIMARY_GREEN}
         />
+
+        {/* Month Units */}
         <StatCard
           icon="calendar"
-          value={`${formatNumber(monthlyTotal.totalUnits)} kWh`}
+          value={`${monthlyTotal.totalUnits} kWh`}
           label="This Month"
           color="#5AC8FA"
         />
+
+        {/* Month Cost */}
         <StatCard
           icon="cash"
-          value={`R ${formatNumber(monthlyTotal.totalCost)}`}
+          value={`R ${monthlyTotal.totalCost}`}
           label="Month Cost"
-          color="#4CD964"
+          color={theme.PRIMARY_GREEN}
         />
       </View>
     </View>
   );
 };
 
+/* -------------------- STYLES -------------------- */
 const styles = StyleSheet.create({
   energyCard: {
     backgroundColor: "#1A1A1A",
@@ -113,7 +116,7 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.5,
@@ -129,13 +132,13 @@ const styles = StyleSheet.create({
   energyLabel: {
     fontSize: 16,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     marginBottom: 8,
   },
   energyValue: {
     fontSize: 36,
     fontFamily: "Roboto_900Black",
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     marginBottom: 4,
   },
   energyCost: {
@@ -146,7 +149,7 @@ const styles = StyleSheet.create({
   liveIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#4CD964",
+    backgroundColor: theme.PRIMARY_GREEN,
     marginRight: 6,
   },
   liveText: {
@@ -171,4 +174,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EnergyCard;
+export default React.memo(EnergyCard);

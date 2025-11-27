@@ -2,11 +2,12 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { formatNumber, formatCurrency } from "../../utils/numberFormatter";
+import { theme } from "../../theme/app-theme";
 
 const Stat = ({ label, value, icon }) => (
   <View style={styles.statBox}>
     <View style={styles.statLabelRow}>
-      {icon && <Ionicons name={icon} size={16} color="#4CD964" />}
+      {icon && <Ionicons name={icon} size={16} color={theme.PRIMARY_GREEN} />}
       <Text style={styles.statLabel}>{label}</Text>
     </View>
     <Text style={styles.statValue}>{value}</Text>
@@ -30,7 +31,7 @@ const HistoryStats = ({ stats, period }) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.period}>{period}</Text>
-        <Ionicons name="stats-chart" size={20} color="#4CD964" />
+        <Ionicons name="stats-chart" size={20} color={theme.PRIMARY_GREEN} />
       </View>
 
       {/* Stats Grid */}
@@ -96,12 +97,12 @@ const HistoryStats = ({ stats, period }) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#1A1A1A",
-    marginHorizontal: 20,
+    marginHorizontal: 4,
     marginBottom: 20,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   header: {
     flexDirection: "row",
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   period: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   grid: {
     flexDirection: "row",
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
     width: "46%",
   },
   statLabelRow: {
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 14,
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     fontFamily: "Roboto_900Black",
   },
 
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#2A2A2A",
+    borderTopColor: theme.BORDER_COLOR,
   },
   blockHeader: {
     fontSize: 14,
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   },
   blockValue: {
     fontSize: 13,
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     fontFamily: "Roboto_700Bold",
   },
 });

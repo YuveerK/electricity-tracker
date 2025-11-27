@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { theme } from "../../theme/app-theme";
 
 const DateRangePicker = ({
   activeRange,
@@ -50,20 +51,12 @@ const DateRangePicker = ({
 
   const handleStartDateChange = (event, selectedDate) => {
     setShowStartPicker(false);
-
-    if (selectedDate) {
-      setTempStartDate(selectedDate);
-      handleDateSelection(selectedDate, tempEndDate);
-    }
+    if (selectedDate) setTempStartDate(selectedDate);
   };
 
   const handleEndDateChange = (event, selectedDate) => {
     setShowEndPicker(false);
-
-    if (selectedDate) {
-      setTempEndDate(selectedDate);
-      handleDateSelection(tempStartDate, selectedDate);
-    }
+    if (selectedDate) setTempEndDate(selectedDate);
   };
 
   const handleDateSelection = (startDate, endDate) => {
@@ -141,7 +134,11 @@ const DateRangePicker = ({
                 style={styles.datePickerButton}
                 onPress={() => setShowStartPicker(true)}
               >
-                <Ionicons name="calendar-outline" size={20} color="#4CD964" />
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={theme.PRIMARY_GREEN}
+                />
                 <Text style={styles.datePickerText}>
                   {formatDateDisplay(tempStartDate)}
                 </Text>
@@ -155,7 +152,11 @@ const DateRangePicker = ({
                 style={styles.datePickerButton}
                 onPress={() => setShowEndPicker(true)}
               >
-                <Ionicons name="calendar-outline" size={20} color="#4CD964" />
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={theme.PRIMARY_GREEN}
+                />
                 <Text style={styles.datePickerText}>
                   {formatDateDisplay(tempEndDate)}
                 </Text>
@@ -174,7 +175,17 @@ const DateRangePicker = ({
 
             <TouchableOpacity
               style={styles.searchButton}
-              onPress={() => setShowCustomInputs(false)}
+              onPress={() => {
+                if (tempStartDate > tempEndDate) {
+                  alert("Start date cannot be after end date");
+                  return;
+                }
+
+                // Only update when pressing DONE
+                onCustomRangeChange(tempStartDate, tempEndDate);
+
+                setShowCustomInputs(false); // close panel
+              }}
             >
               <Ionicons name="checkmark" size={16} color="#FFF" />
               <Text style={styles.searchButtonText}>Done</Text>
@@ -215,7 +226,11 @@ const DateRangePicker = ({
             style={styles.editButton}
             onPress={() => setShowCustomInputs(true)}
           >
-            <Ionicons name="create-outline" size={14} color="#4CD964" />
+            <Ionicons
+              name="create-outline"
+              size={14}
+              color={theme.PRIMARY_GREEN}
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -234,7 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
     marginBottom: 12,
   },
   rangeButton: {
@@ -244,22 +259,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   rangeButtonActive: {
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
   },
   rangeText: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   rangeTextActive: {
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
   },
   customInputsContainer: {
     backgroundColor: "#1A1A1A",
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
     marginBottom: 12,
   },
   sectionTitle: {
@@ -281,11 +296,11 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     marginBottom: 8,
   },
   datePickerButton: {
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -311,14 +326,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     marginRight: 8,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     borderWidth: 1,
     borderColor: "#333",
   },
   cancelButtonText: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   searchButton: {
     flex: 2,
@@ -328,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 8,
-    backgroundColor: "#4CD964",
+    backgroundColor: theme.PRIMARY_GREEN,
   },
   searchButtonText: {
     fontSize: 14,
@@ -340,7 +355,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -350,7 +365,7 @@ const styles = StyleSheet.create({
   currentRangeText: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     marginRight: 8,
   },
   editButton: {

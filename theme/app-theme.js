@@ -1,0 +1,9 @@
+export const theme = {
+  PRIMARY_GREEN: "#4CD964",
+  PRIMARY_GREY: "#888",
+  BACKGROUND_COLOR: "#0A0A0A",
+  BORDER_COLOR: "#2A2A2A",
+};
+
+//   PRIMARY_GREEN: "#4CD964",
+//   PRIMARY_GREEN: "#ffe85c",

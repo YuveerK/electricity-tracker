@@ -1,10 +1,10 @@
 /**
- * Calculates electricity cost based on Three-Phase 80A tariff
+ * Calculates electricity cost based on Three-Phase 80A tariff (ENERGY CHARGE ONLY)
  * @param {number} units - kWh consumed
  * @returns {Object} Object containing cost breakdown
  */
 export function calculateElectricityCost(units) {
-  // Three-Phase 80A tariff rates (in Rands, not cents)
+  // Three-Phase 80A tariff rates (in Rands, not cents) - ENERGY CHARGES ONLY
   const tariffRates = [
     { min: 0, max: 500, rate: 2.5755 }, // 257.55 c/kWh = R 2.5755/kWh
     { min: 501, max: 1000, rate: 2.9558 }, // 295.58 c/kWh = R 2.9558/kWh
@@ -15,29 +15,41 @@ export function calculateElectricityCost(units) {
 
   const vatRate = 0.15; // 15% VAT
 
-  let costBeforeVat = 0;
+  let energyCost = 0;
   let remainingUnits = units;
 
-  // Calculate cost using sliding scale
-  for (const block of tariffRates) {
+  // Calculate energy cost using sliding scale with better precision
+  for (let i = 0; i < tariffRates.length; i++) {
     if (remainingUnits <= 0) break;
 
-    const blockSize =
-      block.max === Infinity ? remainingUnits : block.max - block.min + 1;
-    const unitsInThisBlock = Math.min(remainingUnits, blockSize);
+    const block = tariffRates[i];
+    let unitsInThisBlock;
 
-    if (units >= block.min) {
-      costBeforeVat += unitsInThisBlock * block.rate;
+    if (i === 0) {
+      // First block: 0-500 (500 units total)
+      unitsInThisBlock = Math.min(remainingUnits, 500);
+    } else {
+      // Other blocks: calculate based on block range
+      const blockSize = block.max - block.min + 1;
+      unitsInThisBlock = Math.min(remainingUnits, blockSize);
+    }
+
+    if (unitsInThisBlock > 0) {
+      // Use more precise calculation to avoid floating point errors
+      energyCost += unitsInThisBlock * block.rate;
       remainingUnits -= unitsInThisBlock;
     }
   }
 
-  const vat = costBeforeVat * vatRate;
-  const totalCost = costBeforeVat + vat;
+  // Use more precise rounding to avoid floating point errors
+  const preciseEnergyCost = Math.round(energyCost * 100) / 100;
+  const vat = Math.round(preciseEnergyCost * vatRate * 100) / 100;
+  const totalCost = Math.round((preciseEnergyCost + vat) * 100) / 100;
 
   return {
     units: units,
-    costBeforeVat: parseFloat(costBeforeVat.toFixed(2)),
+    energyCost: parseFloat(preciseEnergyCost.toFixed(2)),
+    costBeforeVat: parseFloat(preciseEnergyCost.toFixed(2)),
     vat: parseFloat(vat.toFixed(2)),
     totalCost: parseFloat(totalCost.toFixed(2)),
     breakdown: getBreakdown(units, tariffRates),
@@ -51,14 +63,22 @@ function getBreakdown(units, tariffRates) {
   const breakdown = [];
   let remainingUnits = units;
 
-  for (const block of tariffRates) {
+  for (let i = 0; i < tariffRates.length; i++) {
     if (remainingUnits <= 0) break;
 
-    const blockSize =
-      block.max === Infinity ? remainingUnits : block.max - block.min + 1;
-    const unitsInThisBlock = Math.min(remainingUnits, blockSize);
+    const block = tariffRates[i];
+    let unitsInThisBlock;
 
-    if (units >= block.min && unitsInThisBlock > 0) {
+    if (i === 0) {
+      // First block: 0-500 (500 units total)
+      unitsInThisBlock = Math.min(remainingUnits, 500);
+    } else {
+      // Other blocks: calculate based on block range
+      const blockSize = block.max - block.min + 1;
+      unitsInThisBlock = Math.min(remainingUnits, blockSize);
+    }
+
+    if (unitsInThisBlock > 0) {
       const costForBlock = unitsInThisBlock * block.rate;
       breakdown.push({
         block: `${block.min} - ${block.max === Infinity ? "Above" : block.max}`,

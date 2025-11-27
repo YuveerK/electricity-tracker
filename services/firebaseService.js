@@ -12,10 +12,62 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import db from "../config/firebase.config";
+import { calculateElectricityCost } from "../helper/electricity-calculation.helper";
 
 const USAGE_COLLECTION = "electricity_usage";
 
 export const firebaseService = {
+  async migrateAllCosts() {
+    try {
+      console.log("🚀 Starting cost migration...");
+
+      const allRecords = await this.getAllUsageReadings();
+      console.log(`📊 Found ${allRecords.length} records to migrate`);
+
+      let updatedCount = 0;
+      let errorCount = 0;
+
+      for (const record of allRecords) {
+        try {
+          const unitsUsed = record.unitsUsed || 0;
+
+          // Skip records with 0 units or already correct format
+          if (unitsUsed <= 0) {
+            console.log(`⏭️ Skipping record ${record.id} - zero units`);
+            continue;
+          }
+
+          // Calculate correct cost using your fixed function
+          const correctCost = calculateElectricityCost(unitsUsed);
+
+          // Update the record in Firestore
+          await this.updateReading(record.id, {
+            cost: correctCost,
+          });
+
+          console.log(
+            `✅ Updated record ${record.id}: ${unitsUsed} units = R ${correctCost.totalCost}`
+          );
+          updatedCount++;
+
+          // Small delay to avoid hitting Firestore limits
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`❌ Error updating record ${record.id}:`, error);
+          errorCount++;
+        }
+      }
+
+      console.log(
+        `🎉 Migration complete! Updated: ${updatedCount}, Errors: ${errorCount}`
+      );
+      return { updatedCount, errorCount };
+    } catch (error) {
+      console.error("❌ Migration failed:", error);
+      throw error;
+    }
+  },
+
   // Save daily usage to Firebase
   async saveDailyUsage(usageData) {
     try {
@@ -215,7 +267,7 @@ export const firebaseService = {
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        totalUnits += data.units || 0;
+        totalUnits += data.unitsUsed || 0;
         totalCost += data.cost?.totalCost || 0;
       });
 
@@ -242,7 +294,8 @@ export const firebaseService = {
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
         const data = doc.data();
-        console.log("Found today's usage:", data.units, "kWh");
+        console.log("Found today's usage:", data.unitsUsed, "kWh");
+
         return {
           id: doc.id,
           ...data,
@@ -253,39 +306,6 @@ export const firebaseService = {
       return null;
     } catch (error) {
       console.error("Error fetching today usage:", error);
-      return null;
-    }
-  },
-
-  // Get yesterday's usage
-  async getYesterdayUsage() {
-    try {
-      console.log("Fetching yesterday's usage...");
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayDate = yesterday.toDateString();
-
-      const q = query(
-        collection(db, USAGE_COLLECTION),
-        where("date", "==", yesterdayDate),
-        limit(1)
-      );
-
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        const data = doc.data();
-        console.log("Found yesterday's usage:", data.units, "kWh");
-        return {
-          id: doc.id,
-          ...data,
-          timestamp: data.timestamp?.toDate?.() || new Date(),
-        };
-      }
-      console.log("No usage found for yesterday");
-      return null;
-    } catch (error) {
-      console.error("Error fetching yesterday usage:", error);
       return null;
     }
   },
@@ -308,6 +328,31 @@ export const firebaseService = {
     } catch (error) {
       console.error("Error getting last meter reading:", error);
       return null;
+    }
+  },
+  async getAllUsageReadings() {
+    try {
+      console.log("Fetching ALL usage readings...");
+
+      const q = query(
+        collection(db, USAGE_COLLECTION),
+        orderBy("timestamp", "asc")
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      const usageData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate?.() || new Date(),
+      }));
+
+      console.log("🔍 ALL USAGE RECORDS:", JSON.stringify(usageData, null, 2));
+
+      return usageData;
+    } catch (error) {
+      console.error("❌ Error fetching all usage readings:", error);
+      throw error;
     }
   },
 };

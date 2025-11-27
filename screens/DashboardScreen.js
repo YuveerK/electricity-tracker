@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, StyleSheet, Alert } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  Text,
+  RefreshControl,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -18,7 +25,6 @@ import Header from "../components/DashboardScreen/Header";
 import UsageInput from "../components/DashboardScreen/UsageInput";
 import EnergyCard from "../components/DashboardScreen/EnergyCard";
 import TimeFrameSelector from "../components/DashboardScreen/TimeFrameSelector";
-import UsageChart from "../components/DashboardScreen/UsageChart";
 import CostBreakdown from "../components/DashboardScreen/CostBreakdown";
 import TariffInfo from "../components/DashboardScreen/TariffInfo";
 import SavingsTip from "../components/DashboardScreen/SavingsTip";
@@ -26,6 +32,7 @@ import SavingsTip from "../components/DashboardScreen/SavingsTip";
 // Services & Helpers
 import { firebaseService } from "../services/firebaseService";
 import { calculateElectricityCost } from "../helper/electricity-calculation.helper";
+import { theme } from "../theme/app-theme";
 
 const DashboardScreen = () => {
   const [fontsLoaded] = useFonts({
@@ -38,14 +45,18 @@ const DashboardScreen = () => {
 
   const [activeTimeFrame, setActiveTimeFrame] = useState("week");
   const [unitsInput, setUnitsInput] = useState("");
+
   const [todayUsage, setTodayUsage] = useState(null);
   const [weeklyUsage, setWeeklyUsage] = useState([]);
   const [monthlyTotal, setMonthlyTotal] = useState({
     totalUnits: 0,
     totalCost: 0,
   });
-  const [yesterdayUsage, setYesterdayUsage] = useState(null);
-  const insets = useSafeAreaInsets();
+
+  const [lastReading, setLastReading] = useState(null);
+
+  // 🔥 New pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -53,36 +64,29 @@ const DashboardScreen = () => {
 
   const loadData = async () => {
     try {
-      const [todayData, weeklyData, monthlyData, yesterdayData] =
+      const [todayData, weeklyData, monthlyData, lastMeterReading] =
         await Promise.all([
           firebaseService.getTodayUsage(),
           firebaseService.getUsageForPeriod(7),
           firebaseService.getMonthlyTotal(),
-          getYesterdayUsage(),
+          firebaseService.getLastMeterReading(),
         ]);
 
       setTodayUsage(todayData);
       setWeeklyUsage(weeklyData);
       setMonthlyTotal(monthlyData);
-      setYesterdayUsage(yesterdayData);
+      setLastReading(lastMeterReading);
     } catch (error) {
       console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load usage data");
     }
   };
 
-  const getYesterdayUsage = async () => {
-    try {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayDate = yesterday.toDateString();
-
-      const usageData = await firebaseService.getUsageForPeriod(2);
-      return usageData.find((usage) => usage.date === yesterdayDate) || null;
-    } catch (error) {
-      console.error("Error getting yesterday usage:", error);
-      return null;
-    }
+  // 🔥 Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
   };
 
   const handleAddReading = async () => {
@@ -92,14 +96,12 @@ const DashboardScreen = () => {
     }
 
     const currentReading = parseFloat(unitsInput);
-
     if (currentReading <= 0) {
       Alert.alert("Error", "Please enter a valid number");
       return;
     }
 
     try {
-      // 1. Get previous reading
       const lastReading = await firebaseService.getLastMeterReading();
 
       if (lastReading === null) {
@@ -120,7 +122,6 @@ const DashboardScreen = () => {
         return;
       }
 
-      // 2. Calculate difference
       const unitsUsed = currentReading - lastReading;
 
       if (unitsUsed < 0) {
@@ -128,10 +129,8 @@ const DashboardScreen = () => {
         return;
       }
 
-      // 3. Calculate cost
       const cost = calculateElectricityCost(unitsUsed);
 
-      // 4. Save to Firebase
       await firebaseService.saveDailyUsage({
         reading: currentReading,
         unitsUsed,
@@ -161,35 +160,111 @@ const DashboardScreen = () => {
 
   if (!fontsLoaded) return null;
 
+  const handleDumpAllReadings = async () => {
+    try {
+      const data = await firebaseService.getAllUsageReadings();
+      Alert.alert("Success", `Fetched ${data.length} readings. Check console.`);
+    } catch (e) {
+      Alert.alert("Error", "Failed to fetch all readings");
+    }
+  };
+
+  const handleMigrateData = async () => {
+    try {
+      Alert.alert(
+        "Migrate Data",
+        "This will update all existing cost calculations. Continue?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Migrate",
+            onPress: async () => {
+              const result = await firebaseService.migrateAllCosts();
+              Alert.alert(
+                "Migration Complete",
+                `Updated: ${result.updatedCount} records\nErrors: ${result.errorCount}`
+              );
+              await loadData(); // Refresh your data
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert("Migration Failed", error.message);
+    }
+  };
+
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container]} edges={["top"]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#fff"
+            colors={["#4EFFA1"]} // Android color
+          />
+        }
       >
+        <TouchableOpacity
+          style={{
+            marginBottom: 20,
+            padding: 14,
+            backgroundColor: "#FF6B35",
+            borderRadius: 10,
+            alignItems: "center",
+          }}
+          onPress={handleMigrateData}
+        >
+          <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
+            🔄 Migrate All Cost Data
+          </Text>
+        </TouchableOpacity>
+        {/* DEBUG BUTTON */}
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            padding: 14,
+            backgroundColor: "#333",
+            borderRadius: 10,
+            alignItems: "center",
+          }}
+          onPress={handleDumpAllReadings}
+        >
+          <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
+            Dump All Firestore Readings (Debug)
+          </Text>
+        </TouchableOpacity>
+
         <Header
           title="Energy Monitor"
           subtitle={`Today • ${new Date().toLocaleDateString()}`}
           onProfilePress={() => console.log("Profile pressed")}
         />
+
         <UsageInput
           unitsInput={unitsInput}
           setUnitsInput={setUnitsInput}
           onAddUnits={handleAddReading}
           previewCost={getPreviewCost()}
+          lastReading={lastReading}
         />
 
         <EnergyCard
           todayUsage={todayUsage}
           monthlyTotal={monthlyTotal}
-          yesterdayUsage={yesterdayUsage}
           weeklyUsage={weeklyUsage}
         />
+
         <TimeFrameSelector
           activeTimeFrame={activeTimeFrame}
           setActiveTimeFrame={setActiveTimeFrame}
         />
+
         <CostBreakdown currentCost={todayUsage?.cost} />
+
         <TariffInfo />
         <SavingsTip />
       </ScrollView>
@@ -199,7 +274,7 @@ const DashboardScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#0A0A0A",
+    backgroundColor: theme.BACKGROUND_COLOR,
     flex: 1,
   },
   scrollContent: {

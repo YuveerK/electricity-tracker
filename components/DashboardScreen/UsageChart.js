@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { Ionicons } from "@expo/vector-icons";
+import { theme } from "../../theme/app-theme";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -53,7 +54,11 @@ const UsageChart = ({ usageData, activeTimeFrame }) => {
         <View style={styles.chartHeader}>
           <Text style={styles.chartTitle}>Energy Consumption</Text>
           <TouchableOpacity style={styles.chartMenu}>
-            <Ionicons name="ellipsis-horizontal" size={16} color="#888" />
+            <Ionicons
+              name="ellipsis-horizontal"
+              size={16}
+              color={theme.PRIMARY_GREY}
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.emptyChart}>
@@ -72,7 +77,11 @@ const UsageChart = ({ usageData, activeTimeFrame }) => {
       <View style={styles.chartHeader}>
         <Text style={styles.chartTitle}>Energy Consumption</Text>
         <TouchableOpacity style={styles.chartMenu}>
-          <Ionicons name="ellipsis-horizontal" size={16} color="#888" />
+          <Ionicons
+            name="ellipsis-horizontal"
+            size={16}
+            color={theme.PRIMARY_GREY}
+          />
         </TouchableOpacity>
       </View>
 
@@ -114,7 +123,7 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   chartHeader: {
     flexDirection: "row",
@@ -131,7 +140,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   chartXAxis: {
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     fontSize: 10,
     fontFamily: "Roboto_400Regular",
   },
@@ -141,7 +150,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyChartText: {
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     fontFamily: "Roboto_500Medium",
     fontSize: 16,
     marginTop: 12,

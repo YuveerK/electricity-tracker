@@ -1,5 +1,6 @@
 import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { theme } from "../../theme/app-theme";
 
 const TimeFrameButton = ({ label, isActive, onPress }) => (
   <TouchableOpacity
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
     padding: 4,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   timeFrameButton: {
     flex: 1,
@@ -58,15 +59,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   timeFrameButtonActive: {
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
   },
   timeFrameText: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   timeFrameTextActive: {
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
   },
 });
 

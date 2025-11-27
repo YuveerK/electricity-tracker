@@ -1,13 +1,13 @@
+// Updated TabNavigator.js
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
 import DashboardScreen from "../screens/DashboardScreen";
-import AddUsageScreen from "../screens/AddUsageScreen";
 import HistoryScreen from "../screens/HistoryScreen";
+import AnalyticsScreen from "../screens/AnalyticsScreen"; // Add this import
 import SettingsScreen from "../screens/SettingsScreen";
-import AnalyticsDashboard from "../screens/AnalyticsDashboard";
-import AnalyticsScreen from "../screens/AnalyticsScreen";
+import { theme } from "../theme/app-theme";
 
 const Tab = createBottomTabNavigator();
 
@@ -24,15 +24,14 @@ export default function TabNavigator() {
           paddingTop: 6,
         },
 
-        tabBarActiveTintColor: "#65c878",
+        tabBarActiveTintColor: theme.PRIMARY_GREEN,
         tabBarInactiveTintColor: "#c9c9ca",
 
         tabBarIcon: ({ color, focused }) => {
           const icons = {
             Dashboard: focused ? "home" : "home-outline",
-            AddUsage: focused ? "add-circle" : "add-circle-outline",
             History: focused ? "time" : "time-outline",
-            Analytics: focused ? "stats-chart" : "stats-chart-outline",
+            Analytics: focused ? "stats-chart" : "stats-chart-outline", // Add this
             Settings: focused ? "settings" : "settings-outline",
           };
 

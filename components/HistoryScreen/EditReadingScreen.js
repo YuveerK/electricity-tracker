@@ -15,33 +15,43 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { firebaseService } from "../../services/firebaseService";
 import { formatCurrency } from "../../utils/numberFormatter";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { theme } from "../../theme/app-theme";
+import { Timestamp } from "firebase/firestore";
 
 const EditReadingScreen = ({ route, navigation }) => {
   const { reading } = route.params;
 
-  const [units, setUnits] = useState(reading.units.toString());
-  const [timestamp, setTimestamp] = useState(new Date(reading.timestamp));
+  // ---- SAFETY: Prevent crash if reading or reading.reading is undefined ----
+  const initialUnits =
+    reading?.reading != null ? reading.reading.toString() : "";
+  const initialTimestamp = reading?.timestamp
+    ? new Date(reading.timestamp)
+    : new Date();
+
+  const [units, setUnits] = useState(initialUnits);
+  const [timestamp, setTimestamp] = useState(initialTimestamp);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [recalculatedCost, setRecalculatedCost] = useState(null);
 
-  // Calculate cost on initial load
+  // --- Note: reading.reading is the actual reading value (kWh) ---
   React.useEffect(() => {
-    const initialCost = calculateCost(units);
+    const initialCost = calculateCost(initialUnits);
     setRecalculatedCost(initialCost);
   }, []);
 
-  // Function to calculate cost based on units and tariff blocks
+  // ---------------------------------------------------------
+  // COST CALCULATION LOGIC
+  // ---------------------------------------------------------
   const calculateCost = (units) => {
     const unitsNum = parseFloat(units);
     if (isNaN(unitsNum) || unitsNum <= 0) return null;
 
-    // Define tariff blocks
     const tariffBlocks = [
-      { limit: 500, rate: 1.5 }, // Block 1: 0-500 kWh
-      { limit: 1000, rate: 2.0 }, // Block 2: 501-1000 kWh
-      { limit: 2000, rate: 2.5 }, // Block 3: 1001-2000 kWh
-      { limit: Infinity, rate: 3.0 }, // Block 4: 2001+ kWh
+      { limit: 500, rate: 1.5 }, // Block 1
+      { limit: 1000, rate: 2.0 }, // Block 2
+      { limit: 2000, rate: 2.5 }, // Block 3
+      { limit: Infinity, rate: 3.0 }, // Block 4
     ];
 
     let remainingUnits = unitsNum;
@@ -50,24 +60,24 @@ const EditReadingScreen = ({ route, navigation }) => {
 
     for (let i = 0; i < tariffBlocks.length && remainingUnits > 0; i++) {
       const block = tariffBlocks[i];
-      const previousLimit = i === 0 ? 0 : tariffBlocks[i - 1].limit;
-      const blockSize = block.limit - previousLimit;
+      const prevLimit = i === 0 ? 0 : tariffBlocks[i - 1].limit;
+      const blockSize = block.limit - prevLimit;
 
-      const unitsInThisBlock = Math.min(remainingUnits, blockSize);
-      const blockCost = unitsInThisBlock * block.rate;
+      const unitsInBlock = Math.min(remainingUnits, blockSize);
+      const blockCost = unitsInBlock * block.rate;
 
       costBeforeVat += blockCost;
-      remainingUnits -= unitsInThisBlock;
+      remainingUnits -= unitsInBlock;
 
       breakdown.push({
-        units: unitsInThisBlock,
+        units: unitsInBlock,
         rate: block.rate,
         cost: blockCost,
         block: i + 1,
       });
     }
 
-    const vat = costBeforeVat * 0.15; // 15% VAT
+    const vat = costBeforeVat * 0.15;
     const totalCost = costBeforeVat + vat;
 
     return {
@@ -78,65 +88,61 @@ const EditReadingScreen = ({ route, navigation }) => {
     };
   };
 
-  // Recalculate cost when units change
   const handleUnitsChange = (newUnits) => {
     setUnits(newUnits);
-    const newCost = calculateCost(newUnits);
-    setRecalculatedCost(newCost);
+    setRecalculatedCost(calculateCost(newUnits));
   };
 
-  const handleDateChange = (event, selectedDate) => {
+  const handleDateChange = (_, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setTimestamp(selectedDate);
     }
   };
 
-  // In the handleSave function, replace the navigation part:
+  // ---------------------------------------------------------
+  // SAVE UPDATED READING
+  // ---------------------------------------------------------
   const handleSave = async () => {
     if (!units || isNaN(parseFloat(units)) || parseFloat(units) <= 0) {
-      Alert.alert("Error", "Please enter a valid number of units");
+      Alert.alert("Error", "Please enter a valid reading.");
       return;
     }
 
     try {
       setLoading(true);
 
-      // Calculate new cost
       const newCost = calculateCost(units);
 
       const updatedReading = {
         ...reading,
-        units: parseFloat(units),
-        timestamp: timestamp.toISOString(),
+        reading: parseFloat(units), // <-- FIX: correct field
+        timestamp: Timestamp.fromDate(timestamp),
         cost: newCost,
       };
 
-      // Update in Firebase
       await firebaseService.updateReading(reading.id, updatedReading);
 
       Alert.alert("Success", "Reading updated successfully", [
         {
           text: "OK",
-          onPress: () => {
-            // Navigate back to the tab navigator which will show the History tab
+          onPress: () =>
             navigation.navigate("MainTabs", {
               screen: "History",
               params: { refreshed: true },
-            });
-          },
+            }),
         },
       ]);
-    } catch (error) {
-      console.error("Error updating reading:", error);
-      Alert.alert("Error", "Failed to update reading");
+    } catch (err) {
+      console.log("Error updating:", err);
+      Alert.alert("Error", "Failed to update reading.");
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDateTime = (date) => {
-    return date.toLocaleString("en-US", {
+  const formatDateTime = (date) =>
+    date.toLocaleString("en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",
@@ -144,13 +150,12 @@ const EditReadingScreen = ({ route, navigation }) => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
 
   const getTariffBlock = (units) => {
-    const unitsNum = parseFloat(units);
-    if (unitsNum <= 500) return "Block 1";
-    if (unitsNum <= 1000) return "Block 2";
-    if (unitsNum <= 2000) return "Block 3";
+    const n = parseFloat(units);
+    if (n <= 500) return "Block 1";
+    if (n <= 1000) return "Block 2";
+    if (n <= 2000) return "Block 3";
     return "Block 4";
   };
 
@@ -161,7 +166,7 @@ const EditReadingScreen = ({ route, navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
+          {/* HEADER */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
@@ -173,40 +178,44 @@ const EditReadingScreen = ({ route, navigation }) => {
             <View style={styles.placeholder} />
           </View>
 
-          {/* Form */}
+          {/* FORM */}
           <View style={styles.form}>
-            {/* Units Input */}
+            {/* UNITS */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Units (kWh)</Text>
+              <Text style={styles.label}>Meter Reading (kWh)</Text>
               <TextInput
                 style={styles.input}
                 value={units}
                 onChangeText={handleUnitsChange}
-                placeholder="Enter Current Meter Reading"
+                placeholder="Enter new meter value"
                 placeholderTextColor="#666"
                 keyboardType="numeric"
                 autoFocus={true}
               />
             </View>
 
-            {/* Date/Time Picker */}
+            {/* DATE PICKER */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Date & Time</Text>
               <TouchableOpacity
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Ionicons name="calendar-outline" size={20} color="#4CD964" />
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={theme.PRIMARY_GREEN}
+                />
                 <Text style={styles.dateText}>{formatDateTime(timestamp)}</Text>
                 <Ionicons name="chevron-down" size={16} color="#666" />
               </TouchableOpacity>
             </View>
 
-            {/* Cost Preview */}
+            {/* COST PREVIEW */}
             {recalculatedCost && (
               <View style={styles.costPreview}>
                 <Text style={styles.costPreviewTitle}>
-                  New Cost Calculation
+                  Updated Cost Calculation
                 </Text>
 
                 <View style={styles.costRow}>
@@ -235,17 +244,18 @@ const EditReadingScreen = ({ route, navigation }) => {
                   </Text>
                 </View>
 
-                {/* Cost Breakdown */}
+                {/* COST BREAKDOWN */}
                 <View style={styles.breakdownSection}>
                   <Text style={styles.breakdownTitle}>Cost Breakdown</Text>
-                  {recalculatedCost.breakdown.map((block, index) => (
-                    <View key={index} style={styles.breakdownRow}>
+
+                  {recalculatedCost.breakdown.map((b, i) => (
+                    <View key={i} style={styles.breakdownRow}>
                       <Text style={styles.breakdownText}>
-                        Block {block.block}: {block.units} kWh ×{" "}
-                        {formatCurrency(block.rate)}
+                        Block {b.block}: {b.units} kWh ×{" "}
+                        {formatCurrency(b.rate)}
                       </Text>
                       <Text style={styles.breakdownCost}>
-                        {formatCurrency(block.cost)}
+                        {formatCurrency(b.cost)}
                       </Text>
                     </View>
                   ))}
@@ -253,19 +263,22 @@ const EditReadingScreen = ({ route, navigation }) => {
               </View>
             )}
 
-            {/* Original Values for Reference */}
+            {/* ORIGINAL VALUES */}
             <View style={styles.originalValues}>
               <Text style={styles.originalTitle}>Original Values</Text>
+
               <View style={styles.originalRow}>
-                <Text style={styles.originalLabel}>Units:</Text>
-                <Text style={styles.originalValue}>{reading.units} kWh</Text>
+                <Text style={styles.originalLabel}>Reading:</Text>
+                <Text style={styles.originalValue}>{reading.reading} kWh</Text>
               </View>
+
               <View style={styles.originalRow}>
                 <Text style={styles.originalLabel}>Cost:</Text>
                 <Text style={styles.originalValue}>
-                  {formatCurrency(reading.cost?.totalCost || 0)}
+                  {formatCurrency(reading.cost?.totalCost ?? 0)}
                 </Text>
               </View>
+
               <View style={styles.originalRow}>
                 <Text style={styles.originalLabel}>Date:</Text>
                 <Text style={styles.originalValue}>
@@ -275,7 +288,7 @@ const EditReadingScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Action Buttons */}
+          {/* ACTION BUTTONS */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
@@ -306,7 +319,6 @@ const EditReadingScreen = ({ route, navigation }) => {
           </View>
         </ScrollView>
 
-        {/* Date Picker */}
         {showDatePicker && (
           <DateTimePicker
             value={timestamp}
@@ -321,10 +333,13 @@ const EditReadingScreen = ({ route, navigation }) => {
   );
 };
 
+// ---------------------------------------------------------
+// STYLES
+// ---------------------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: theme.BACKGROUND_COLOR,
   },
   scrollContent: {
     flexGrow: 1,
@@ -337,29 +352,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#2A2A2A",
+    borderBottomColor: theme.BORDER_COLOR,
   },
-  backButton: {
-    padding: 4,
-  },
+  backButton: { padding: 4 },
   title: {
     fontSize: 18,
     fontFamily: "Roboto_700Bold",
     color: "#FFF",
   },
-  placeholder: {
-    width: 32,
-  },
-  form: {
-    padding: 20,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
+  placeholder: { width: 32 },
+  form: { padding: 20 },
+  inputContainer: { marginBottom: 24 },
   label: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     marginBottom: 8,
   },
   input: {
@@ -371,7 +378,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Roboto_400Regular",
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   dateButton: {
     backgroundColor: "#1A1A1A",
@@ -379,7 +386,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -395,26 +402,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
     marginBottom: 20,
   },
   costPreviewTitle: {
     fontSize: 16,
     fontFamily: "Roboto_700Bold",
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     marginBottom: 16,
     textAlign: "center",
   },
   costRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 8,
   },
   costLabel: {
     fontSize: 14,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   costValue: {
     fontSize: 14,
@@ -423,25 +429,25 @@ const styles = StyleSheet.create({
   },
   totalCostRow: {
     borderTopWidth: 1,
-    borderTopColor: "#2A2A2A",
+    borderTopColor: theme.BORDER_COLOR,
     paddingTop: 12,
     marginTop: 8,
   },
   totalCostLabel: {
     fontSize: 16,
     fontFamily: "Roboto_700Bold",
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
   },
   totalCostValue: {
     fontSize: 16,
     fontFamily: "Roboto_700Bold",
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
   },
   breakdownSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#2A2A2A",
+    borderTopColor: theme.BORDER_COLOR,
   },
   breakdownTitle: {
     fontSize: 14,
@@ -452,14 +458,12 @@ const styles = StyleSheet.create({
   breakdownRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 6,
   },
   breakdownText: {
     fontSize: 12,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
-    flex: 1,
+    color: theme.PRIMARY_GREY,
   },
   breakdownCost: {
     fontSize: 12,
@@ -471,7 +475,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   originalTitle: {
     fontSize: 14,
@@ -482,13 +486,12 @@ const styles = StyleSheet.create({
   originalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 8,
   },
   originalLabel: {
     fontSize: 12,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   originalValue: {
     fontSize: 12,
@@ -511,20 +514,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cancelButton: {
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     borderWidth: 1,
     borderColor: "#333",
   },
-  saveButton: {
-    backgroundColor: "#4CD964",
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
+  saveButton: { backgroundColor: theme.PRIMARY_GREEN },
+  disabledButton: { opacity: 0.6 },
   cancelButtonText: {
     fontSize: 16,
     fontFamily: "Roboto_600SemiBold",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   saveButtonText: {
     fontSize: 16,

@@ -1,10 +1,11 @@
 import React from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { theme } from "../../theme/app-theme";
 
 const LoadingIndicator = () => {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#4CD964" />
+      <ActivityIndicator size="large" color={theme.PRIMARY_GREEN} />
       <Text style={styles.text}>Loading your history...</Text>
     </View>
   );
@@ -21,7 +22,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
 });
 

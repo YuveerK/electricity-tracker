@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { formatNumber, formatCurrency } from "../../utils/numberFormatter";
+import { theme } from "../../theme/app-theme";
 
 const HistoryCard = ({ data, isFirst, isLast, onEdit, onDelete }) => {
   const [showDetails, setShowDetails] = useState(false);
-
   const ts = new Date(data.timestamp);
+  const endReading = Number(data.reading) || 0;
+  const unitsUsed = Number(data.unitsUsed) || 0;
+  const startReading = endReading - unitsUsed;
 
   const getTariffBlock = (units) => {
     if (units <= 500) return "0 – 500 kWh (Block 1)";
@@ -66,24 +69,49 @@ const HistoryCard = ({ data, isFirst, isLast, onEdit, onDelete }) => {
             <Row
               label="Units Used"
               value={`${formatNumber(data.unitsUsed, 2)} kWh`}
-              color="#4CD964"
+              color={theme.PRIMARY_GREEN}
               bold
             />
+            <View style={styles.calcContainer}>
+              <Text style={styles.calcTitle}>How Units Were Calculated</Text>
+
+              <View style={styles.calcRow}>
+                <Text style={styles.calcLabel}>Start Reading:</Text>
+                <Text style={styles.calcValue}>
+                  {startReading?.toFixed?.(2) || "0.00"} units
+                </Text>
+              </View>
+
+              <View style={styles.calcRow}>
+                <Text style={styles.calcLabel}>End Reading:</Text>
+                <Text style={styles.calcValue}>
+                  {endReading?.toFixed?.(2) || "0.00"} units
+                </Text>
+              </View>
+
+              <View style={styles.calcFormulaWrapper}>
+                <Text style={styles.calcFormula}>
+                  {endReading?.toFixed?.(2) || "0.00"} −{" "}
+                  {startReading?.toFixed?.(2) || "0.00"} ={" "}
+                  {unitsUsed?.toFixed?.(2) || "0.00"} kWh
+                </Text>
+              </View>
+            </View>
 
             <Row
               label="Total Cost"
-              value={formatCurrency(data.cost?.totalCost || 0)}
+              value={`R${data.cost?.totalCost?.toFixed?.(2) || "0.00"}`}
               bold
             />
 
             <Row
               label="Cost Before VAT"
-              value={formatCurrency(data.cost?.costBeforeVat || 0)}
+              value={`R${data.cost?.costBeforeVat?.toFixed?.(2) || "0.00"}`}
             />
 
             <Row
               label="VAT (15%)"
-              value={formatCurrency(data.cost?.vat || 0)}
+              value={`R${data.cost?.vat?.toFixed?.(2) || "0.00"}`}
             />
           </View>
 
@@ -93,10 +121,12 @@ const HistoryCard = ({ data, isFirst, isLast, onEdit, onDelete }) => {
               {data.cost?.breakdown?.map((block, index) => (
                 <View key={index} style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
-                    {block.block} @ {block.rate.toFixed(4)}
+                    {block.block || "Block"} @{" "}
+                    {block.rate?.toFixed?.(4) || "0.0000"}
                   </Text>
+
                   <Text style={styles.breakdownValue}>
-                    {block.units} kWh → {formatCurrency(block.cost)}
+                    {block.units ?? 0} kWh → {formatCurrency(block.cost || 0)}
                   </Text>
                 </View>
               ))}
@@ -155,11 +185,62 @@ const Row = ({ label, value, bold, color }) => (
 );
 
 const styles = StyleSheet.create({
+  calcContainer: {
+    marginVertical: 12,
+    padding: 12,
+    backgroundColor: "#111",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.BORDER_COLOR,
+  },
+
+  calcTitle: {
+    color: theme.PRIMARY_GREEN,
+    fontFamily: "Roboto_700Bold",
+    fontSize: 14,
+    marginBottom: 8,
+  },
+
+  calcRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+
+  calcLabel: {
+    color: theme.PRIMARY_GREY,
+    fontSize: 13,
+  },
+
+  calcValue: {
+    color: "#FFF",
+    fontSize: 13,
+    fontFamily: "Roboto_500Medium",
+  },
+
+  calcFormulaWrapper: {
+    marginTop: 10,
+    padding: 8,
+    backgroundColor: "#1A1A1A",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+
+  calcFormula: {
+    color: "#FFF",
+    fontSize: 13,
+    fontFamily: "Roboto_700Bold",
+    textAlign: "center",
+  },
+
   card: {
     backgroundColor: "#1A1A1A",
     marginHorizontal: 4,
-    borderColor: "#2A2A2A",
+    marginVertical: 20,
+    borderColor: theme.BORDER_COLOR,
     borderBottomWidth: 1,
+    borderRadius: 16,
   },
   firstCard: {
     borderTopLeftRadius: 16,
@@ -179,9 +260,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   date: { fontSize: 16, color: "#FFF", fontFamily: "Roboto_700Bold" },
-  time: { fontSize: 12, color: "#888", fontFamily: "Roboto_400Regular" },
+  time: {
+    fontSize: 12,
+    color: theme.PRIMARY_GREY,
+    fontFamily: "Roboto_400Regular",
+  },
   tariffChip: {
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -193,7 +278,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
-  dataLabel: { color: "#888", fontSize: 14 },
+  dataLabel: { color: theme.PRIMARY_GREY, fontSize: 14 },
   dataValue: { color: "#FFF", fontSize: 14 },
   boldText: { fontFamily: "Roboto_900Black", fontSize: 16 },
   breakdownBar: {

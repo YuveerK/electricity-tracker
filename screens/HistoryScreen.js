@@ -29,9 +29,11 @@ import HistoryCard from "../components/HistoryScreen/HistoryCard";
 import HistoryStats from "../components/HistoryScreen/HistoryStats";
 import EmptyState from "../components/HistoryScreen/EmptyState";
 import LoadingIndicator from "../components/HistoryScreen/LoadingIndicator";
+import { calculateElectricityCost } from "../helper/electricity-calculation.helper";
 
 // Services
 import { firebaseService } from "../services/firebaseService";
+import { theme } from "../theme/app-theme";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -138,49 +140,29 @@ const HistoryScreen = ({ route }) => {
   };
 
   const calculateStats = (data) => {
-    if (!data || data.length === 0) {
-      setStats({
-        totalUsage: 0,
-        totalCost: 0,
-        totalCostBeforeVat: 0,
-        totalVat: 0,
-        averageDaily: 0,
-        averageCostDaily: 0,
-        days: 0,
-        blocks: {},
-      });
+    if (data.length === 0) {
+      setStats({ ...zero });
       return;
     }
 
-    // Block breakdown
-    const blocks = {};
-    data.forEach((entry) => {
-      entry.cost?.breakdown?.forEach((block) => {
-        const blockCostInclVat = block.cost * 1.15;
-
-        if (!blocks[block.block]) {
-          blocks[block.block] = { units: 0, cost: 0 };
-        }
-
-        blocks[block.block].units += block.units;
-        blocks[block.block].cost += blockCostInclVat;
-      });
-    });
-
-    const totalUsage = data.reduce((sum, d) => sum + (d.unitsUsed || 0), 0);
-    const totalCostBeforeVat = data.reduce(
-      (sum, d) => sum + (d.cost?.costBeforeVat || 0),
-      0
+    // sort ASC (oldest → newest)
+    const sortedAsc = [...data].sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
     );
+
+    const firstReading = sortedAsc[0].reading;
+    const lastReading = sortedAsc[sortedAsc.length - 1].reading;
+
+    const totalUsage = lastReading - firstReading;
+
+    const costObj = calculateElectricityCost(totalUsage);
+
+    const totalCostBeforeVat = costObj.costBeforeVat;
     const totalVat = totalCostBeforeVat * 0.15;
     const totalCost = totalCostBeforeVat + totalVat;
 
-    // Count unique calendar days
-    const uniqueDays = new Set(
-      data.map((d) => new Date(d.timestamp).toDateString())
-    ).size;
-
-    const days = uniqueDays || 1;
+    const days = new Set(data.map((d) => new Date(d.timestamp).toDateString()))
+      .size;
 
     setStats({
       totalUsage,
@@ -190,7 +172,13 @@ const HistoryScreen = ({ route }) => {
       averageDaily: totalUsage / days,
       averageCostDaily: totalCost / days,
       days,
-      blocks,
+      blocks: costObj.breakdown.reduce((acc, b) => {
+        acc[b.block] = {
+          units: b.units,
+          cost: b.cost * 1.15,
+        };
+        return acc;
+      }, {}),
     });
   };
 
@@ -315,10 +303,7 @@ const HistoryScreen = ({ route }) => {
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { paddingTop: insets.top }]}
-      edges={["top"]}
-    >
+    <SafeAreaView style={[styles.container]} edges={["top"]}>
       <FlatList
         data={filteredData.length > 0 ? filteredData : []}
         keyExtractor={(item) => item.id}
@@ -328,8 +313,8 @@ const HistoryScreen = ({ route }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#4CD964"
-            colors={["#4CD964"]}
+            tintColor={theme.PRIMARY_GREEN}
+            colors={[theme.PRIMARY_GREEN]}
           />
         }
         ListHeaderComponent={filteredData.length > 0 ? renderHeader : null}
@@ -350,11 +335,12 @@ const HistoryScreen = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#0A0A0A",
+    backgroundColor: theme.BACKGROUND_COLOR,
     flex: 1,
+    paddingHorizontal: 10,
   },
   headerContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
   },
   listContent: {
     flexGrow: 1,
@@ -362,13 +348,13 @@ const styles = StyleSheet.create({
   listHeader: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#2A2A2A",
+    borderBottomColor: theme.BORDER_COLOR,
     marginBottom: 8,
   },
   listHeaderText: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   emptyStateContainer: {
     flex: 1,

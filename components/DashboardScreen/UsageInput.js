@@ -7,18 +7,19 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { theme } from "../../theme/app-theme";
 
-const UsageInput = ({ unitsInput, setUnitsInput, onAddUnits, previewCost }) => {
-  // Safe cost calculation
+const UsageInput = ({
+  unitsInput,
+  setUnitsInput,
+  onAddUnits,
+  previewCost,
+  lastReading,
+}) => {
   const getPreviewCostText = () => {
     if (!previewCost) return null;
-
-    // Handle different possible structures of previewCost
     const totalCost = previewCost.total || previewCost.totalCost || 0;
-
-    // Ensure it's a number before using toFixed
     const costValue = typeof totalCost === "number" ? totalCost : 0;
-
     return `Cost: R ${costValue.toFixed(2)}`;
   };
 
@@ -26,11 +27,21 @@ const UsageInput = ({ unitsInput, setUnitsInput, onAddUnits, previewCost }) => {
 
   return (
     <View style={styles.inputCard}>
-      <Text style={styles.inputTitle}>Add Daily Usage</Text>
+      <Text style={styles.inputTitle}>Add Meter Reading 🔌</Text>
+
+      {lastReading !== null && (
+        <Text style={styles.lastReadingText}>
+          Last reading:{" "}
+          <Text style={{ color: theme.PRIMARY_GREEN, fontWeight: "700" }}>
+            {lastReading} kWh
+          </Text>
+        </Text>
+      )}
+
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.textInput}
-          placeholder="Enter kWh used today..."
+          placeholder="Enter current meter reading..."
           placeholderTextColor="#666"
           keyboardType="numeric"
           value={unitsInput}
@@ -44,6 +55,7 @@ const UsageInput = ({ unitsInput, setUnitsInput, onAddUnits, previewCost }) => {
           <Ionicons name="add" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
+
       {previewText && (
         <View style={styles.previewCost}>
           <Text style={styles.previewText}>{previewText}</Text>
@@ -60,13 +72,19 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   inputTitle: {
     fontSize: 18,
     fontFamily: "Roboto_700Bold",
     color: "#FFF",
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  lastReadingText: {
+    color: "#AAA",
+    fontFamily: "Roboto_400Regular",
+    fontSize: 14,
+    marginBottom: 12,
   },
   inputContainer: {
     flexDirection: "row",
@@ -74,7 +92,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -89,7 +107,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 12,
-    backgroundColor: "#4CD964",
+    backgroundColor: theme.PRIMARY_GREEN,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -99,13 +117,13 @@ const styles = StyleSheet.create({
   previewCost: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: "#4CD964",
+    borderLeftColor: theme.PRIMARY_GREEN,
   },
   previewText: {
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     fontFamily: "Roboto_500Medium",
     fontSize: 14,
   },

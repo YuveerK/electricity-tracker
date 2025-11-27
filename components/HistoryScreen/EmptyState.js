@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { theme } from "../../theme/app-theme";
 
 const EmptyState = ({ message, onRetry }) => {
   return (
@@ -13,7 +14,7 @@ const EmptyState = ({ message, onRetry }) => {
       <Text style={styles.message}>{message}</Text>
 
       <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-        <Ionicons name="refresh" size={16} color="#4CD964" />
+        <Ionicons name="refresh" size={16} color={theme.PRIMARY_GREEN} />
         <Text style={styles.retryText}>Refresh Data</Text>
       </TouchableOpacity>
     </View>
@@ -36,7 +37,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
   title: {
     fontSize: 20,
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 14,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     textAlign: "center",
     marginBottom: 32,
     lineHeight: 20,
@@ -56,7 +57,7 @@ const styles = StyleSheet.create({
   retryButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     fontFamily: "Roboto_500Medium",
-    color: "#4CD964",
+    color: theme.PRIMARY_GREEN,
     marginLeft: 8,
   },
 });

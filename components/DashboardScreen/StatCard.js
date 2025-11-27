@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
+import { theme } from "../../theme/app-theme";
 const StatCard = ({ icon, value, label, trend, color }) => (
   <View style={styles.statCard}>
     <View style={[styles.statIcon, { backgroundColor: color + "20" }]}>
@@ -14,12 +14,12 @@ const StatCard = ({ icon, value, label, trend, color }) => (
         <Ionicons
           name={trend > 0 ? "trending-up" : "trending-down"}
           size={12}
-          color={trend > 0 ? "#FF3B30" : "#4CD964"}
+          color={trend > 0 ? "#FF3B30" : theme.PRIMARY_GREEN}
         />
         <Text
           style={[
             styles.trendText,
-            { color: trend > 0 ? "#FF3B30" : "#4CD964" },
+            { color: trend > 0 ? "#FF3B30" : theme.PRIMARY_GREEN },
           ]}
         >
           {Math.abs(trend).toFixed(1)}%
@@ -32,7 +32,7 @@ const StatCard = ({ icon, value, label, trend, color }) => (
 const styles = StyleSheet.create({
   statCard: {
     width: Dimensions.get("screen").width / 2 - 50,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.BORDER_COLOR,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
   },
   trendContainer: {
     flexDirection: "row",

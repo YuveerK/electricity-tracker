@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { theme } from "../../theme/app-theme";
 
 // In components/Header.js - add showProfile prop
 const Header = ({ title, subtitle, onProfilePress, showProfile = true }) => {
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 25,
     fontFamily: "Roboto_700Bold",
     color: "#FFFFFF",
     letterSpacing: -0.5,
@@ -36,7 +37,7 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 14,
     fontFamily: "Roboto_400Regular",
-    color: "#888",
+    color: theme.PRIMARY_GREY,
     marginTop: 4,
   },
   avatar: {
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: theme.BORDER_COLOR,
   },
 });
 
