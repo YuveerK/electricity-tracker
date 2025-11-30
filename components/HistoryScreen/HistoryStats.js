@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { formatNumber, formatCurrency } from "../../utils/numberFormatter";
+import { formatNumber } from "../../utils/numberFormatter";
 import { theme } from "../../theme/app-theme";
 
 const Stat = ({ label, value, icon }) => (
@@ -14,18 +14,22 @@ const Stat = ({ label, value, icon }) => (
   </View>
 );
 
+/* 🔥 FIXED — SAFE .toFixed() */
 const BlockStat = ({ block, units, cost }) => {
+  const safeUnits = units ?? 0;
+  const safeCost = cost ?? 0;
+
   return (
     <View style={styles.blockRow}>
       <Text style={styles.blockLabel}>{block}</Text>
       <Text style={styles.blockValue}>
-        {formatNumber(units, 2)} kWh • {cost.toFixed(2)}
+        {formatNumber(safeUnits, 2)} kWh • {safeCost.toFixed(2)}
       </Text>
     </View>
   );
 };
 
-const HistoryStats = ({ stats, period }) => {
+const HistoryStats = ({ stats = {}, period }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -38,44 +42,48 @@ const HistoryStats = ({ stats, period }) => {
       <View style={styles.grid}>
         <Stat
           label="Total Units"
-          value={`${formatNumber(stats.totalUsage, 2)} kWh`}
+          value={`${formatNumber(stats.totalUsage ?? 0, 2)} kWh`}
           icon="flash"
         />
 
         <Stat
           label="Total Cost"
-          value={`R${stats.totalCost.toFixed(2)}`}
+          value={`R${(stats.totalCost ?? 0).toFixed(2)}`}
           icon="cash-outline"
         />
 
         <Stat
           label="Cost Before VAT"
-          value={`R${stats.totalCostBeforeVat.toFixed(2)}`}
+          value={`R${(stats.totalCostBeforeVat ?? 0).toFixed(2)}`}
           icon="receipt-outline"
         />
 
         <Stat
           label="VAT Total"
-          value={`R${stats.totalVat.toFixed(2)}`}
+          value={`R${(stats.totalVat ?? 0).toFixed(2)}`}
           icon="pricetag-outline"
         />
 
         <Stat
           label="Avg Daily Usage"
-          value={`${formatNumber(stats.averageDaily, 2)} kWh`}
+          value={`${formatNumber(stats.averageDaily ?? 0, 2)} kWh`}
           icon="calendar-outline"
         />
 
         <Stat
           label="Avg Daily Cost"
-          value={`R${stats.averageCostDaily.toFixed(2)}`}
+          value={`R${(stats.averageCostDaily ?? 0).toFixed(2)}`}
           icon="calculator-outline"
         />
 
-        <Stat label="Days Counted" value={stats.days} icon="time-outline" />
+        <Stat
+          label="Days Counted"
+          value={`${stats.days ?? 0}`}
+          icon="time-outline"
+        />
       </View>
 
-      {/* BLOCK BREAKDOWN */}
+      {/* BLOCKS */}
       {stats.blocks && Object.keys(stats.blocks).length > 0 && (
         <View style={styles.blockContainer}>
           <Text style={styles.blockHeader}>Block Breakdown</Text>
@@ -84,8 +92,8 @@ const HistoryStats = ({ stats, period }) => {
             <BlockStat
               key={block}
               block={block}
-              units={info.units}
-              cost={info.cost}
+              units={info?.units}
+              cost={info?.cost}
             />
           ))}
         </View>
@@ -144,7 +152,6 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto_900Black",
   },
 
-  /* BLOCK BREAKDOWN */
   blockContainer: {
     marginTop: 24,
     paddingTop: 12,

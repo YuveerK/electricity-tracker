@@ -4,23 +4,14 @@ import StatCard from "./StatCard";
 import { theme } from "../../theme/app-theme";
 
 const EnergyCard = ({ todayUsage, monthlyTotal, weeklyUsage = [] }) => {
-  console.log("🟦 ENERGY CARD RENDER ---------------------------");
-
   const todayDate = new Date().toDateString();
   const yesterdayDate = (() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     return d.toDateString();
   })();
-
-  console.log("📅 Today date:", todayDate);
-  console.log("📅 Yesterday date:", yesterdayDate);
-
   const todayEntries = weeklyUsage.filter((e) => e.date === todayDate);
   const yesterdayEntries = weeklyUsage.filter((e) => e.date === yesterdayDate);
-
-  console.log("📘 Today entries:", todayEntries);
-  console.log("📙 Yesterday entries:", yesterdayEntries);
 
   // --- UNITS ---
   const todayTotal = todayEntries.reduce(
@@ -33,9 +24,6 @@ const EnergyCard = ({ todayUsage, monthlyTotal, weeklyUsage = [] }) => {
     0
   );
 
-  console.log("🔵 Today via readings:", todayTotal);
-  console.log("🟠 Yesterday via readings:", yesterdayUnits);
-
   // --- COST (MATCHES UsageInput logic) ---
   const todayCost = todayEntries.reduce((sum, e) => {
     const c = e.cost || {};
@@ -43,15 +31,11 @@ const EnergyCard = ({ todayUsage, monthlyTotal, weeklyUsage = [] }) => {
     return sum + costValue;
   }, 0);
 
-  console.log("💰 Today Cost:", todayCost);
-
   // --- TREND ---
   const trend =
     yesterdayUnits > 0
       ? ((todayTotal - yesterdayUnits) / yesterdayUnits) * 100
       : 0;
-
-  console.log("📊 Trend:", trend);
 
   return (
     <View style={styles.energyCard}>
@@ -81,7 +65,7 @@ const EnergyCard = ({ todayUsage, monthlyTotal, weeklyUsage = [] }) => {
 
         {/* Trend */}
         <StatCard
-          icon="trending-up"
+          icon="stats-chart-outline"
           value={`${trend > 0 ? "+" : ""}${trend.toFixed(1)}%`}
           label="vs Yesterday"
           trend={trend}
@@ -136,7 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   energyValue: {
-    fontSize: 36,
+    fontSize: 26,
     fontFamily: "Roboto_900Black",
     color: theme.PRIMARY_GREEN,
     marginBottom: 4,

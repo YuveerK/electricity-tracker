@@ -7,6 +7,7 @@ import {
   Dimensions,
   RefreshControl,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import {
   SafeAreaView,
@@ -14,6 +15,9 @@ import {
 } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+
 import {
   Roboto_400Regular,
   Roboto_300Light,
@@ -29,7 +33,12 @@ import HistoryCard from "../components/HistoryScreen/HistoryCard";
 import HistoryStats from "../components/HistoryScreen/HistoryStats";
 import EmptyState from "../components/HistoryScreen/EmptyState";
 import LoadingIndicator from "../components/HistoryScreen/LoadingIndicator";
-import { calculateElectricityCost } from "../helper/electricity-calculation.helper";
+
+// Helpers
+import {
+  calculateStatsFromReadings,
+  calculateDateRange,
+} from "../helper/stats.helper";
 
 // Services
 import { firebaseService } from "../services/firebaseService";
@@ -53,22 +62,33 @@ const HistoryScreen = ({ route }) => {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     endDate: new Date(),
   });
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({
-    totalUsage: 0,
-    totalCost: 0,
-    averageDaily: 0,
-  });
+  const [stats, setStats] = useState({});
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
-  // Reload data when screen comes into focus (after editing)
+  // In HistoryScreen.js, replace the handleGeneratePdf function and update the navigation
+  const handleGeneratePdf = async () => {
+    try {
+      // Navigate to SummaryScreen with the current data
+      navigation.navigate("Summary", {
+        historyData: filteredData,
+        stats: stats,
+        periodLabel: formatPeriodLabel(),
+      });
+    } catch (error) {
+      console.error("Navigation error:", error);
+      Alert.alert("Error", "Failed to generate summary");
+    }
+  };
+
+  // Refresh on screen focus
   useFocusEffect(
     React.useCallback(() => {
       if (route.params?.refreshed) {
         loadHistoryData();
-        // Clear the params to prevent infinite reloads
         navigation.setParams({ refreshed: false });
       }
     }, [route.params?.refreshed])
@@ -82,37 +102,22 @@ const HistoryScreen = ({ route }) => {
     try {
       setLoading(true);
 
-      let startDate, endDate;
-
-      if (dateRange === "custom") {
-        startDate = new Date(customRange.startDate);
-        startDate.setHours(0, 0, 0, 0);
-
-        endDate = new Date(customRange.endDate);
-        endDate.setHours(23, 59, 59, 999);
-      } else {
-        endDate = new Date();
-        endDate.setHours(23, 59, 59, 999);
-
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - getDaysForRange());
-        startDate.setHours(0, 0, 0, 0);
-      }
-
-      console.log("🚀 Querying date range:", startDate, "->", endDate);
+      const { startDate, endDate } = calculateDateRange(dateRange, customRange);
 
       const usageData = await firebaseService.getUsageByDateRange(
         startDate,
         endDate
       );
 
-      const sortedData = usageData.sort(
+      const sorted = usageData.sort(
         (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
       );
 
-      setHistoryData(sortedData);
-      setFilteredData(sortedData);
-      calculateStats(sortedData);
+      setHistoryData(sorted);
+      setFilteredData(sorted);
+
+      const statsResult = calculateStatsFromReadings(usageData);
+      setStats(statsResult);
     } catch (error) {
       console.error("Error loading history data:", error);
     } finally {
@@ -121,82 +126,51 @@ const HistoryScreen = ({ route }) => {
     }
   };
 
-  const getDaysForRange = () => {
-    switch (dateRange) {
-      case "week":
-        return 7;
-      case "month":
-        return 30;
-      case "quarter":
-        return 90;
-      case "year":
-        return 365;
-      case "custom":
-        const diffTime = Math.abs(customRange.endDate - customRange.startDate);
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      default:
-        return 30;
-    }
-  };
-
-  const calculateStats = (data) => {
-    if (data.length === 0) {
-      setStats({ ...zero });
-      return;
-    }
-
-    // sort ASC (oldest → newest)
-    const sortedAsc = [...data].sort(
-      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-    );
-
-    const firstReading = sortedAsc[0].reading;
-    const lastReading = sortedAsc[sortedAsc.length - 1].reading;
-
-    const totalUsage = lastReading - firstReading;
-
-    const costObj = calculateElectricityCost(totalUsage);
-
-    const totalCostBeforeVat = costObj.costBeforeVat;
-    const totalVat = totalCostBeforeVat * 0.15;
-    const totalCost = totalCostBeforeVat + totalVat;
-
-    const days = new Set(data.map((d) => new Date(d.timestamp).toDateString()))
-      .size;
-
-    setStats({
-      totalUsage,
-      totalCost,
-      totalCostBeforeVat,
-      totalVat,
-      averageDaily: totalUsage / days,
-      averageCostDaily: totalCost / days,
-      days,
-      blocks: costObj.breakdown.reduce((acc, b) => {
-        acc[b.block] = {
-          units: b.units,
-          cost: b.cost * 1.15,
-        };
-        return acc;
-      }, {}),
-    });
-  };
-
   const handleRefresh = () => {
     setRefreshing(true);
     loadHistoryData();
   };
 
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
+  const handleDateRangeChange = (range) => setDateRange(range);
 
   const handleCustomRangeChange = (startDate, endDate) => {
     setCustomRange({ startDate, endDate });
     setDateRange("custom");
   };
 
-  const formatDateRangeLabel = () => {
+  const handleEditReading = (reading) =>
+    navigation.navigate("EditReading", { reading });
+
+  const handleDeleteReading = (readingId) => {
+    Alert.alert(
+      "Delete Reading",
+      "Are you sure you want to delete this reading?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await firebaseService.deleteReading(readingId);
+
+              const updated = historyData.filter((i) => i.id !== readingId);
+              setHistoryData(updated);
+              setFilteredData(updated);
+
+              const recalculated = calculateStatsFromReadings(updated);
+              setStats(recalculated);
+            } catch (error) {
+              console.error("Delete error:", error);
+              Alert.alert("Error", "Failed to delete reading");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const formatPeriodLabel = () => {
     switch (dateRange) {
       case "week":
         return "Last 7 Days";
@@ -213,52 +187,19 @@ const HistoryScreen = ({ route }) => {
     }
   };
 
-  const handleEditReading = (reading) => {
-    navigation.navigate("EditReading", { reading });
-  };
-
-  const handleDeleteReading = async (readingId) => {
-    Alert.alert(
-      "Delete Reading",
-      "Are you sure you want to delete this reading?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await firebaseService.deleteReading(readingId);
-
-              // Update local state
-              const updatedData = historyData.filter(
-                (item) => item.id !== readingId
-              );
-              setHistoryData(updatedData);
-              setFilteredData(updatedData);
-              calculateStats(updatedData);
-
-              Alert.alert("Success", "Reading deleted successfully");
-            } catch (error) {
-              console.error("Error deleting reading:", error);
-              Alert.alert("Error", "Failed to delete reading");
-            }
-          },
-        },
-      ]
-    );
-  };
-
+  // 💚 Added "Generate PDF" button inside header
   const renderHeader = () => (
     <View style={styles.headerContent}>
       <Header
         title="Usage History"
-        subtitle={formatDateRangeLabel()}
+        subtitle={formatPeriodLabel()}
         showProfile={false}
       />
+
+      {/* PDF Button */}
+      <TouchableOpacity style={styles.pdfButton} onPress={handleGeneratePdf}>
+        <Text style={styles.pdfButtonText}>Generate PDF</Text>
+      </TouchableOpacity>
 
       <DateRangePicker
         activeRange={dateRange}
@@ -267,7 +208,7 @@ const HistoryScreen = ({ route }) => {
         onCustomRangeChange={handleCustomRangeChange}
       />
 
-      <HistoryStats stats={stats} period={formatDateRangeLabel()} />
+      <HistoryStats stats={stats} period={formatPeriodLabel()} />
 
       {filteredData.length > 0 && (
         <View style={styles.listHeader}>
@@ -280,19 +221,7 @@ const HistoryScreen = ({ route }) => {
     </View>
   );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyStateContainer}>
-      {renderHeader()}
-      <EmptyState
-        onRetry={loadHistoryData}
-        message="No usage data found for the selected period"
-      />
-    </View>
-  );
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   if (loading && !refreshing) {
     return (
@@ -303,9 +232,10 @@ const HistoryScreen = ({ route }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container]} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <FlatList
-        data={filteredData.length > 0 ? filteredData : []}
+        style={{ flex: 1 }}
+        data={filteredData}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.listContent, { paddingBottom: 20 }]}
@@ -318,7 +248,15 @@ const HistoryScreen = ({ route }) => {
           />
         }
         ListHeaderComponent={filteredData.length > 0 ? renderHeader : null}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={
+          <View style={styles.emptyStateContainer}>
+            {renderHeader()}
+            <EmptyState
+              onRetry={loadHistoryData}
+              message="No usage data found for the selected period"
+            />
+          </View>
+        }
         renderItem={({ item, index }) => (
           <HistoryCard
             data={item}
@@ -342,8 +280,21 @@ const styles = StyleSheet.create({
   headerContent: {
     paddingHorizontal: 0,
   },
+  pdfButton: {
+    backgroundColor: theme.PRIMARY_GREEN,
+    padding: 14,
+    borderRadius: 12,
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  pdfButtonText: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#000",
+  },
   listContent: {
-    flexGrow: 1,
+    flex: 1,
+    paddingBottom: 20,
   },
   listHeader: {
     paddingVertical: 16,

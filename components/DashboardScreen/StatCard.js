@@ -2,28 +2,39 @@ import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/app-theme";
+
 const StatCard = ({ icon, value, label, trend, color }) => (
   <View style={styles.statCard}>
     <View style={[styles.statIcon, { backgroundColor: color + "20" }]}>
       <Ionicons name={icon} size={20} color={color} />
     </View>
+
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
+
     {trend !== undefined && (
       <View style={styles.trendContainer}>
-        <Ionicons
-          name={trend > 0 ? "trending-up" : "trending-down"}
-          size={12}
-          color={trend > 0 ? "#FF3B30" : theme.PRIMARY_GREEN}
-        />
-        <Text
-          style={[
-            styles.trendText,
-            { color: trend > 0 ? "#FF3B30" : theme.PRIMARY_GREEN },
-          ]}
-        >
-          {Math.abs(trend).toFixed(1)}%
-        </Text>
+        {trend > 0 ? (
+          /* 🔺 Usage went UP — bad */
+          <>
+            <Ionicons name="trending-up" size={14} color="#FF3B30" />
+            <Text style={[styles.trendText, { color: "#FF3B30" }]}>
+              {trend.toFixed(1)}%
+            </Text>
+          </>
+        ) : (
+          /* 🔻 Usage went DOWN — good */
+          <>
+            <Ionicons
+              name="trending-down"
+              size={14}
+              color={theme.PRIMARY_GREEN}
+            />
+            <Text style={[styles.trendText, { color: theme.PRIMARY_GREEN }]}>
+              {Math.abs(trend).toFixed(1)}%
+            </Text>
+          </>
+        )}
       </View>
     )}
   </View>
@@ -36,7 +47,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    marginHorizontal: 4, // Add small horizontal margin
+    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: "#333",
   },

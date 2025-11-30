@@ -16,10 +16,16 @@ const UsageInput = ({
   previewCost,
   lastReading,
 }) => {
+  // Safe cost calculation
   const getPreviewCostText = () => {
     if (!previewCost) return null;
+
+    // Handle different possible structures of previewCost
     const totalCost = previewCost.total || previewCost.totalCost || 0;
+
+    // Ensure it's a number before using toFixed
     const costValue = typeof totalCost === "number" ? totalCost : 0;
+
     return `Cost: R ${costValue.toFixed(2)}`;
   };
 
@@ -28,13 +34,10 @@ const UsageInput = ({
   return (
     <View style={styles.inputCard}>
       <Text style={styles.inputTitle}>Add Meter Reading 🔌</Text>
-
       {lastReading !== null && (
         <Text style={styles.lastReadingText}>
           Last reading:{" "}
-          <Text style={{ color: theme.PRIMARY_GREEN, fontWeight: "700" }}>
-            {lastReading} kWh
-          </Text>
+          <Text style={{ color: "#4EFFA1" }}>{lastReading} kWh</Text>
         </Text>
       )}
 
@@ -55,7 +58,6 @@ const UsageInput = ({
           <Ionicons name="add" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
-
       {previewText && (
         <View style={styles.previewCost}>
           <Text style={styles.previewText}>{previewText}</Text>
@@ -78,13 +80,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "Roboto_700Bold",
     color: "#FFF",
-    marginBottom: 8,
-  },
-  lastReadingText: {
-    color: "#AAA",
-    fontFamily: "Roboto_400Regular",
-    fontSize: 14,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   inputContainer: {
     flexDirection: "row",
@@ -126,6 +122,12 @@ const styles = StyleSheet.create({
     color: theme.PRIMARY_GREEN,
     fontFamily: "Roboto_500Medium",
     fontSize: 14,
+  },
+  lastReadingText: {
+    color: "#AAA",
+    fontFamily: "Roboto_400Regular",
+    fontSize: 14,
+    marginBottom: 10,
   },
 });
 

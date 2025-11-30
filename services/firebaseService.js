@@ -19,11 +19,7 @@ const USAGE_COLLECTION = "electricity_usage";
 export const firebaseService = {
   async migrateAllCosts() {
     try {
-      console.log("🚀 Starting cost migration...");
-
       const allRecords = await this.getAllUsageReadings();
-      console.log(`📊 Found ${allRecords.length} records to migrate`);
-
       let updatedCount = 0;
       let errorCount = 0;
 
@@ -33,7 +29,6 @@ export const firebaseService = {
 
           // Skip records with 0 units or already correct format
           if (unitsUsed <= 0) {
-            console.log(`⏭️ Skipping record ${record.id} - zero units`);
             continue;
           }
 
@@ -44,10 +39,6 @@ export const firebaseService = {
           await this.updateReading(record.id, {
             cost: correctCost,
           });
-
-          console.log(
-            `✅ Updated record ${record.id}: ${unitsUsed} units = R ${correctCost.totalCost}`
-          );
           updatedCount++;
 
           // Small delay to avoid hitting Firestore limits
@@ -58,9 +49,6 @@ export const firebaseService = {
         }
       }
 
-      console.log(
-        `🎉 Migration complete! Updated: ${updatedCount}, Errors: ${errorCount}`
-      );
       return { updatedCount, errorCount };
     } catch (error) {
       console.error("❌ Migration failed:", error);
@@ -71,14 +59,11 @@ export const firebaseService = {
   // Save daily usage to Firebase
   async saveDailyUsage(usageData) {
     try {
-      console.log("Saving to Firebase...");
-
       const docRef = await addDoc(collection(db, USAGE_COLLECTION), {
         ...usageData,
         timestamp: Timestamp.now(),
       });
 
-      console.log("Document written with ID:", docRef.id);
       return docRef.id;
     } catch (error) {
       console.error("Error saving to Firebase:", error);
@@ -120,7 +105,6 @@ export const firebaseService = {
     try {
       const docRef = doc(db, USAGE_COLLECTION, readingId);
       await updateDoc(docRef, updatedData);
-      console.log("Reading updated successfully:", readingId);
       return true;
     } catch (error) {
       console.error("Error updating reading:", error);
@@ -133,7 +117,6 @@ export const firebaseService = {
     try {
       const docRef = doc(db, USAGE_COLLECTION, readingId);
       await deleteDoc(docRef);
-      console.log("Reading deleted successfully:", readingId);
       return true;
     } catch (error) {
       console.error("Error deleting reading:", error);
@@ -144,7 +127,6 @@ export const firebaseService = {
   // Get ALL usage data (for testing - remove date filtering)
   async getAllUsage() {
     try {
-      console.log("Fetching ALL usage data...");
       const q = query(
         collection(db, USAGE_COLLECTION),
         orderBy("timestamp", "desc")
@@ -162,7 +144,6 @@ export const firebaseService = {
         });
       });
 
-      console.log(`Found ${usageData.length} records total`);
       return usageData;
     } catch (error) {
       console.error("Error fetching all usage:", error);
@@ -173,8 +154,6 @@ export const firebaseService = {
   // Get usage for last N days (with better date handling)
   async getUsageForPeriod(days = 30) {
     try {
-      console.log("Fetching usage for period...");
-
       // Set correct start & end times for filtering
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -182,8 +161,6 @@ export const firebaseService = {
 
       const endDate = new Date();
       endDate.setHours(23, 59, 59, 999);
-
-      console.log("Filtering from:", startDate, "to:", endDate);
 
       const q = query(
         collection(db, USAGE_COLLECTION),
@@ -204,7 +181,6 @@ export const firebaseService = {
         });
       });
 
-      console.log(`Found ${usageData.length} filtered records`);
       return usageData;
     } catch (error) {
       console.error("Error fetching filtered usage:", error);
@@ -216,7 +192,6 @@ export const firebaseService = {
   async getUsageFlexible(days = 3650) {
     // 10 years to catch 2025 data
     try {
-      console.log("Fetching usage with flexible date range...");
       const startDate = new Date();
       startDate.setFullYear(startDate.getFullYear() - 10); // Go back 10 years
 
@@ -238,7 +213,6 @@ export const firebaseService = {
         });
       });
 
-      console.log(`Found ${usageData.length} records`);
       return usageData;
     } catch (error) {
       console.error("Error fetching usage:", error);
@@ -249,7 +223,6 @@ export const firebaseService = {
   // Get monthly total
   async getMonthlyTotal() {
     try {
-      console.log("Fetching monthly total...");
       const startOfMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -271,7 +244,6 @@ export const firebaseService = {
         totalCost += data.cost?.totalCost || 0;
       });
 
-      console.log(`Monthly total: ${totalUnits} units, R${totalCost}`);
       return { totalUnits, totalCost: parseFloat(totalCost.toFixed(2)) };
     } catch (error) {
       console.error("Error fetching monthly total:", error);
@@ -282,7 +254,6 @@ export const firebaseService = {
   // Get today's usage
   async getTodayUsage() {
     try {
-      console.log("Fetching today's usage...");
       const today = new Date().toDateString();
       const q = query(
         collection(db, USAGE_COLLECTION),
@@ -294,7 +265,6 @@ export const firebaseService = {
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
         const data = doc.data();
-        console.log("Found today's usage:", data.unitsUsed, "kWh");
 
         return {
           id: doc.id,
@@ -302,7 +272,6 @@ export const firebaseService = {
           timestamp: data.timestamp?.toDate?.() || new Date(),
         };
       }
-      console.log("No usage found for today");
       return null;
     } catch (error) {
       console.error("Error fetching today usage:", error);
@@ -332,8 +301,6 @@ export const firebaseService = {
   },
   async getAllUsageReadings() {
     try {
-      console.log("Fetching ALL usage readings...");
-
       const q = query(
         collection(db, USAGE_COLLECTION),
         orderBy("timestamp", "asc")
@@ -346,9 +313,6 @@ export const firebaseService = {
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate?.() || new Date(),
       }));
-
-      console.log("🔍 ALL USAGE RECORDS:", JSON.stringify(usageData, null, 2));
-
       return usageData;
     } catch (error) {
       console.error("❌ Error fetching all usage readings:", error);

@@ -3,48 +3,77 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/app-theme";
 
-// In components/Header.js - add showProfile prop
 const Header = ({ title, subtitle, onProfilePress, showProfile = true }) => {
   return (
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.greeting}>{title}</Text>
-        <Text style={styles.date}>{subtitle}</Text>
+    <View style={styles.wrapper}>
+      {/* Accent Bar */}
+      <View style={styles.accentBar} />
+
+      {/* Main Row */}
+      <View style={styles.row}>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        </View>
+
+        {showProfile && (
+          <TouchableOpacity style={styles.avatar} onPress={onProfilePress}>
+            <Ionicons name="person-circle-outline" size={32} color="#FFF" />
+          </TouchableOpacity>
+        )}
       </View>
-      {showProfile && (
-        <TouchableOpacity style={styles.avatar} onPress={onProfilePress}>
-          <Ionicons name="person" size={20} color="#FFF" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
+  wrapper: {
+    marginBottom: 25,
+    marginTop: 10,
+    paddingBottom: 10,
+  },
+
+  accentBar: {
+    height: 4,
+    width: 60,
+    borderRadius: 6,
+    backgroundColor: theme.PRIMARY_GREEN,
+    marginBottom: 14,
+    shadowColor: theme.PRIMARY_GREEN,
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
+
+  row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    marginTop: 10,
   },
-  greeting: {
-    fontSize: 25,
-    fontFamily: "Roboto_700Bold",
+
+  textContainer: {
+    flexShrink: 1,
+  },
+
+  title: {
+    fontSize: 26,
+    fontFamily: "Roboto_900Black",
     color: "#FFFFFF",
-    letterSpacing: -0.5,
+    letterSpacing: -0.7,
   },
-  date: {
-    fontSize: 14,
+
+  subtitle: {
+    fontSize: 13,
     fontFamily: "Roboto_400Regular",
     color: theme.PRIMARY_GREY,
-    marginTop: 4,
+    marginTop: 2,
   },
+
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#1A1A1A",
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "#0F0F0F",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,

@@ -208,7 +208,7 @@ const DashboardScreen = () => {
           />
         }
       >
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={{
             marginBottom: 20,
             padding: 14,
@@ -222,7 +222,7 @@ const DashboardScreen = () => {
             🔄 Migrate All Cost Data
           </Text>
         </TouchableOpacity>
-        {/* DEBUG BUTTON */}
+
         <TouchableOpacity
           style={{
             marginTop: 20,
@@ -236,7 +236,7 @@ const DashboardScreen = () => {
           <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
             Dump All Firestore Readings (Debug)
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <Header
           title="Energy Monitor"
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingBottom: 40,
   },
 });
